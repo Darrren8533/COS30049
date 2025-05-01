@@ -1,0 +1,442 @@
+/* Topic Details Styles */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f7f9fc;
+}
+
+.main-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* Loading and Error States */
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-top: 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #1a73e8;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* Topic Header */
+.topic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.topic-title-section {
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+}
+
+.back-button:hover {
+  background-color: #e0e0e0;
+  color: #1a73e8;
+}
+
+.topic-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.topic-certification {
+  font-size: 14px;
+  color: #666;
+  margin: 5px 0 0;
+}
+
+.topic-certification a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.topic-certification a:hover {
+  text-decoration: underline;
+}
+
+.topic-progress-badge .status-badge {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-badge.not-started {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.status-badge.in-progress {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+}
+
+.status-badge.completed {
+  background-color: #e6f4ea;
+  color: #0d652d;
+}
+
+/* Progress Section */
+.topic-progress-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.progress-percent {
+  font-weight: 600;
+  color: #333;
+}
+
+.progress-bar-container {
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #1a73e8;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.materials-viewed {
+  font-size: 13px;
+  color: #666;
+  margin: 5px 0 0;
+}
+
+/* Topic Tabs */
+.topic-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-button {
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-button:hover {
+  color: #1a73e8;
+}
+
+.tab-button.active {
+  color: #1a73e8;
+  border-bottom: 2px solid #1a73e8;
+}
+
+/* Card Styles */
+.topic-description-card, .topic-materials-card, .quiz-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+.card-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 5px;
+  color: #333;
+}
+
+.card-header p {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* Materials List */
+.materials-list {
+  margin-top: 15px;
+}
+
+.material-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+.material-item:hover {
+  background-color: #f1f3f4;
+}
+
+.material-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.material-info {
+  flex: 1;
+}
+
+.material-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 5px;
+  color: #333;
+}
+
+.material-meta {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.material-download-btn {
+  background-color: #f5f5f5;
+  color: #333;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.2s;
+}
+
+.material-download-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.no-materials-message {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  font-size: 14px;
+}
+
+/* Quiz Section */
+.quiz-info {
+  padding: 20px 0;
+}
+
+.quiz-info-text h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: #333;
+}
+
+.quiz-info-text p {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 5px;
+}
+
+.btn-take-quiz {
+  display: block;
+  width: auto;
+  padding: 12px 30px;
+  margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-take-quiz:hover {
+  background-color: #1662c5;
+}
+
+.no-quiz-message {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+.no-quiz-message p {
+  font-size: 14px;
+  margin: 5px 0;
+}
+
+/* Quiz Attempts Section */
+.quiz-attempts {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.quiz-attempts h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.attempts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attempt-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.attempt-date, .attempt-score {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #555;
+}
+
+.attempt-result {
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.attempt-result.passed {
+  background-color: #e6f4ea;
+  color: #0d652d;
+}
+
+.attempt-result.failed {
+  background-color: #fde9e8;
+  color: #c5221f;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 20px;
+  }
+  
+  .topic-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .topic-progress-badge {
+    margin-top: 15px;
+  }
+  
+  .material-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .material-icon {
+    margin-bottom: 10px;
+  }
+  
+  .material-download-btn {
+    margin-top: 10px;
+    align-self: flex-end;
+  }
+  
+  .attempt-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .attempt-result {
+    align-self: flex-end;
+  }
+}

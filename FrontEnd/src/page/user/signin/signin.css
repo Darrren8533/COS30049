@@ -1,0 +1,471 @@
+/* Add before the Sign In Page Styles */
+.home-button-container {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.home-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  background-color: #2ecc71;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 10px rgba(46, 204, 113, 0.3);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.home-button i {
+  margin-right: 2px;
+  font-size: 1rem;
+}
+
+.home-button:hover {
+  background-color: #27ae60;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Sign In Page Styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.signin-page {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  font-family: 'Montserrat', 'Segoe UI', sans-serif;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.signin-container {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.signin-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Image Section */
+.signin-image-container {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  display: none; /* Hides by default on mobile devices, visible on desktop */
+}
+
+.signin-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+}
+
+.signin-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(39, 174, 96, 0.7), rgba(46, 204, 113, 0.7));
+  padding: 5%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+}
+
+.signin-overlay h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1.25rem;
+  text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+}
+
+.signin-overlay p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
+}
+
+/* Form Section */
+.signin-form-container {
+  flex: 1;
+  padding: 0;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fff;
+  height: 100%;
+}
+
+.signin-form-wrapper {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.signin-form-container h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.signin-subtitle {
+  color: #7f8c8d;
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon i {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #95a5a6;
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 0.9375rem;
+  border: 0.0625rem solid #dcdfe6;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-with-icon input:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+  outline: none;
+}
+
+.input-with-icon input.error {
+  border-color: #e74c3c;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+}
+
+.remember-me input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: #2ecc71;
+}
+
+.forgot-password {
+  color: #2ecc71;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #27ae60;
+  text-decoration: underline;
+}
+
+.signin-button {
+  width: 100%;
+  padding: 15px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.signin-button i {
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+}
+
+.signin-button:hover {
+  background-color: #27ae60;
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.2);
+}
+
+.signin-button:hover i {
+  transform: translateX(4px);
+}
+
+.signin-divider {
+  position: relative;
+  text-align: center;
+  margin: 30px 0;
+}
+
+.signin-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #e0e0e0;
+}
+
+.signin-divider span {
+  position: relative;
+  background-color: white;
+  padding: 0 15px;
+  color: #95a5a6;
+  font-size: 0.9rem;
+}
+
+.social-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.social-button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.social-button i {
+  margin-right: 10px;
+  font-size: 1.1rem;
+}
+
+.social-button.google:hover {
+  background-color: #f8f9fa;
+  border-color: #4285f4;
+  color: #4285f4;
+}
+
+.social-button.facebook:hover {
+  background-color: #f8f9fa;
+  border-color: #3b5998;
+  color: #3b5998;
+}
+
+.signup-prompt {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.signup-prompt a {
+  color: #2ecc71;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.signup-prompt a:hover {
+  color: #27ae60;
+  text-decoration: underline;
+}
+
+/* 响应式设计 */
+@media (min-width: 992px) {
+  .signin-image-container {
+    display: block;
+  }
+  
+  .signin-form-container {
+    padding: 0;
+  }
+}
+
+@media (max-width: 991px) {
+  .signin-image-container {
+    display: none;
+  }
+  
+  .signin-form-container {
+    padding: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .signin-page {
+    padding: 0;
+  }
+  
+  .signin-container {
+    padding: 0;
+  }
+  
+  .signin-content {
+    border-radius: 0;
+  }
+  
+  .signin-form-container {
+    padding: 0;
+  }
+  
+  .signin-form-wrapper {
+    padding: 20px;
+  }
+  
+  .signin-form-container h1 {
+    font-size: 1.8rem;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .social-signin {
+    gap: 10px;
+  }
+  
+  .home-button {
+    top: 15px;
+    left: 15px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Micro-interaction animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signin-form-wrapper {
+  animation: slideIn 0.5s ease;
+}
+
+/* Micro movement effect of the label when the input box is focused */
+.form-group:focus-within label {
+  color: #2ecc71;
+  transform: translateX(5px);
+  transition: all 0.3s ease;
+}
+
+/* 添加表单头部样式 */
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* 基础字体大小设置 */
+:root {
+  font-size: 16px;
+}
+
+/* 添加消息样式 */
+.message {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.message.success {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #27ae60;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.message.error {
+  background-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* 修改按钮禁用状态样式 */
+.signin-button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+

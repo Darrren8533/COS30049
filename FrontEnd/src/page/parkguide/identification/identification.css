@@ -1,0 +1,356 @@
+/* 植物识别页面样式 */
+
+.identification-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+@media (max-width: 992px) {
+  .identification-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 上传区域 */
+.upload-section {
+  width: 100%;
+}
+
+.upload-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.upload-card h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.upload-card p {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.file-upload-wrapper {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.file-upload-input {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.file-upload-label {
+  display: block;
+  width: 100%;
+  padding: 16px 24px;
+  background-color: #f0f7ff;
+  color: #0066cc;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  border: 2px dashed #0066cc;
+  transition: all 0.2s;
+}
+
+.file-upload-label:hover {
+  background-color: #e0f0ff;
+}
+
+.preview-container {
+  position: relative;
+  max-width: 100%;
+  margin-bottom: 24px;
+}
+
+.image-preview {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: none;
+  color: #e74c3c;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background-color: #fff;
+  color: #c0392b;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.identify-btn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.identify-btn:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.identify-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  background-color: #e9ecef;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #ffffff;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 结果区域 */
+.result-section {
+  width: 100%;
+}
+
+.result-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.result-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.confidence-badge {
+  background-color: #edf8ff;
+  color: #0066cc;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 100px;
+}
+
+.result-name {
+  margin-bottom: 20px;
+}
+
+.result-name h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 4px 0;
+}
+
+.scientific-name {
+  color: #7f8c8d;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.result-details {
+  margin-bottom: 24px;
+}
+
+.detail-section {
+  margin-bottom: 16px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.detail-section p {
+  margin: 0;
+  color: #34495e;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.result-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.save-btn, .share-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-btn {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+}
+
+.save-btn:hover {
+  background-color: #27ae60;
+}
+
+.share-btn {
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  border: 1px solid #dee2e6;
+}
+
+.share-btn:hover {
+  background-color: #e9ecef;
+}
+
+/* 拍摄提示区域 */
+.tips-section {
+  margin-top: 30px;
+}
+
+.tips-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+}
+
+.tips-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.tip-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.tip-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #edf8ff;
+  color: #3498db;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.tip-card h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.tip-card p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 14px;
+  line-height: 1.5;
+}
