@@ -16,6 +16,11 @@ const ParkGuideSidebar = ({ activeLink, isOpen, toggleSidebar }) => {
       });
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
   
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -57,6 +62,12 @@ const ParkGuideSidebar = ({ activeLink, isOpen, toggleSidebar }) => {
               <span>Identification</span>
             </Link>
           </li>
+          <li className={activeLink === 'profile' ? 'active' : ''}>
+            <Link to="/parkguide/profile" className="menu-item">
+            <i className="icon fa-solid fa-user"></i>
+              <span>My Profile</span>
+            </Link>
+          </li>
           {/* <li className={activeLink === 'settings' ? 'active' : ''}>
             <Link to="/parkguide/settings" className="menu-item">
             <i class="icon fa-solid fa-gear"></i>
@@ -67,7 +78,7 @@ const ParkGuideSidebar = ({ activeLink, isOpen, toggleSidebar }) => {
       </div>
       
       <div className="logout-container">
-        <Link to="/signin" className="logout-button">
+        <Link onClick={handleLogout} className="logout-button">
           <i className="icon fa-solid fa-sign-out-alt"></i>
           <span>Logout</span>
         </Link>

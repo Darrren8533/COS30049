@@ -375,8 +375,8 @@ const Users = () => {
                 onChange={(e) => setFilterRole(e.target.value)}
               >
                 <option value="all">All Roles</option>
-                <option value="Park Guide">Park Guides</option>
-                <option value="Admin">Administrators</option>
+                <option value="guide">Park Guides</option>
+                <option value="admin">Administrators</option>
                 <option value="user">Regular Users</option>
               </select>
             </div>
@@ -419,7 +419,7 @@ const Users = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>Registration Date</th>
-                  <th>Certificates</th>
+                  {/* <th>Certificates</th> */}
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -438,9 +438,9 @@ const Users = () => {
                       </span>
                     </td>
                     <td>{user.registeredDate}</td>
-                    <td className="certificate-count">
+                    {/* <td className="certificate-count">
                       <span className="badge">{user.certificates}</span>
-                    </td>
+                    </td> */}
                     <td className="action-buttons">
                       <button className="action-btn edit" onClick={() => handleEditClick(user)}>
                         <i className="fas fa-edit"></i>
@@ -558,8 +558,8 @@ const Users = () => {
                     onChange={handleInputChange}
                   >
                     <option value="user">Regular User</option>
-                    <option value="Park Guide">Park Guide</option>
-                    <option value="Admin">Administrator</option>
+                    <option value="guide">Park Guide</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
                 
@@ -648,8 +648,8 @@ const Users = () => {
                     onChange={handleEditInputChange}
                   >
                     <option value="user">Regular User</option>
-                    <option value="Park Guide">Park Guide</option>
-                    <option value="Admin">Administrator</option>
+                    <option value="guide">Park Guide</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
                 

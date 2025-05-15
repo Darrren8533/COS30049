@@ -1,300 +1,430 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import ParkGuideSidebar from '../../../components/ParkGuideSidebar/ParkGuideSidebar';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars } from '@fortawesome/free-solid-svg-icons';
 import './dashboard.css';
 
 const Dashboard = () => {
   const [activeLink, setActiveLink] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    user: {
+      username: '',
+      fullName: '',
+      email: '',
+      role: '',
+      registeredSince: '',
+      lastActive: '',
+    },
+    certifications: {
+      total: 0,
+      active: 0,
+      inProgress: 0,
+      pending: 0,
+      recent: []
+    },
+    notifications: {
+      unread: 0,
+      recent: []
+    },
+    progress: {
+      topicsDone: 0,
+      totalTopics: 0,
+      quizzesPassed: 0,
+      totalQuizzes: 0,
+      lastActivity: '',
+    }
+  });
 
-  // Detect screen width and set mobile device state
+  const navigate = useNavigate();
+  
+  // Get user ID from localStorage
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = currentUser.userId;
+
+  // Fetch dashboard data
   useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+    const fetchDashboardData = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch user profile information
+        const userResponse = await fetch(`http://localhost:3000/api/users/${userId}`);
+        if (!userResponse.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const userData = await userResponse.json();
+        
+        // API adjustment: Since there is no /certificates/stats endpoint, we will use existing APIs to combine data
+        
+        // Fetch Certified certificates
+        const certifiedResponse = await fetch(`http://localhost:3000/api/users/${userId}/certified-certificates`);
+        const certifiedData = await certifiedResponse.json();
+        
+        // Fetch In Progress certificates
+        const inProgressResponse = await fetch(`http://localhost:3000/api/users/${userId}/certificate-applications?status=In Progress`);
+        const inProgressData = await inProgressResponse.json();
+        
+        // Fetch pending certificate applications
+        const pendingResponse = await fetch(`http://localhost:3000/api/users/${userId}/certificate-applications?statusCategory=pending`);
+        const pendingData = await pendingResponse.json();
+        
+        // Calculate certificate statistics
+        const totalCertificates = (certifiedData.success ? certifiedData.certificates.length : 0) + 
+                                 (inProgressData.success ? inProgressData.applications.length : 0);
+        const activeCertificates = certifiedData.success ? certifiedData.certificates.length : 0;
+        const inProgressCount = inProgressData.success ? inProgressData.applications.length : 0;
+        const pendingCount = pendingData.success ? pendingData.applications.length : 0;
+        
+        // Extract details of in-progress certificates
+        const recentCerts = inProgressData.success ? 
+          inProgressData.applications.slice(0, 3).map(cert => ({
+            id: cert.id,
+            title: cert.title,
+            progress: typeof cert.progress === 'number' ? cert.progress : 0,
+            status: cert.status
+          })) : [];
+        
+        // 获取通知数据
+        const notificationsResponse = await fetch(`http://localhost:3000/api/notifications/${userId}`);
+        const notificationsData = await notificationsResponse.json();
+        
+        // 计算未读通知数量
+        const notificationsUnread = notificationsData.filter(
+          notification => notification.to_user_id == userId && notification.type === 'unread'
+        ).length;
+        
+        // 获取最近3条通知
+        const recentNotifications = notificationsData
+          .filter(notification => notification.to_user_id == userId)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 3)
+          .map(notification => ({
+            id: notification.id,
+            title: notification.title,
+            date: notification.date || new Date(notification.created_at).toLocaleDateString(),
+            read: notification.is_read || notification.type === 'read'
+          }));
+        
+        // Calculate learning progress (derived from in-progress certificates)
+        let topicsDone = 0;
+        let totalTopics = 0;
+        let quizzesPassed = 0;
+        let totalQuizzes = 0;
+        
+        // If there are in-progress certificates, use the progress of the first certificate as part of the overall progress
+        if (recentCerts.length > 0) {
+          const firstCertProgress = recentCerts[0].progress;
+          topicsDone = Math.round(firstCertProgress * 4 / 100); // Assume each certificate has 4 topics
+          totalTopics = 4;
+          quizzesPassed = Math.round(firstCertProgress * 4 / 100); // Assume each topic has one quiz
+          totalQuizzes = 4;
+        }
+        
+        // Update state
+        setStats({
+          user: {
+            username: userData.user?.username || currentUser.username || 'User',
+            fullName: userData.user?.fullName || 'Park Guide User',
+            email: userData.user?.email || 'guide@example.com',
+            role: userData.user?.role || currentUser.userRole || 'Guide',
+            registeredSince: userData.user?.createdAt ? new Date(userData.user.createdAt).toLocaleDateString() : 'Jan 1, 2023',
+            lastActive: userData.user?.lastActive ? new Date(userData.user.lastActive).toLocaleDateString() : 'Today'
+          },
+          certifications: {
+            total: totalCertificates,
+            active: activeCertificates,
+            inProgress: inProgressCount,
+            pending: pendingCount,
+            recent: recentCerts
+          },
+          notifications: {
+            unread: notificationsUnread,
+            recent: recentNotifications
+          },
+          progress: {
+            topicsDone: topicsDone,
+            totalTopics: totalTopics,
+            quizzesPassed: quizzesPassed,
+            totalQuizzes: totalQuizzes,
+            lastActivity: new Date().toLocaleDateString()
+          }
+        });
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again later.');
+        
+        // Set default data to ensure the UI can display properly
+        setStats(prev => ({
+          ...prev,
+          user: {
+            ...prev.user,
+            username: currentUser.username || 'User',
+            role: currentUser.userRole || 'Guide'
+          }
+        }));
+      } finally {
+        setLoading(false);
+      }
     };
     
-    // Initial check
-    checkIsMobile();
-    
-    // Add window resize listener
-    window.addEventListener('resize', checkIsMobile);
-    
-    // Cleanup function
-    return () => {
-      window.removeEventListener('resize', checkIsMobile);
-    };
-  }, []);
+    fetchDashboardData();
+  }, [userId]); // Add userId as a dependency to ensure data is refetched when the user ID changes
 
-  // Toggle sidebar visibility
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+  // Calculate overall certification progress percentage
+  const calculateOverallProgress = () => {
+    const { topicsDone, totalTopics, quizzesPassed, totalQuizzes } = stats.progress;
+    
+    if (totalTopics === 0 && totalQuizzes === 0) return 0;
+    
+    const topicsWeight = 0.6; // Topics are 60% of progress
+    const quizzesWeight = 0.4; // Quizzes are 40% of progress
+    
+    const topicsProgress = totalTopics > 0 ? (topicsDone / totalTopics) * topicsWeight : 0;
+    const quizzesProgress = totalQuizzes > 0 ? (quizzesPassed / totalQuizzes) * quizzesWeight : 0;
+    
+    return Math.round((topicsProgress + quizzesProgress) * 100);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Navigate to certifications page
+  const goToCertifications = () => {
+    navigate('/certifications');
+  };
+
+  // Navigate to notifications page
+  const goToNotifications = () => {
+    navigate('/notification');
   };
 
   return (
     <div className="dashboard-container">
-      <ParkGuideSidebar 
-        activeLink={activeLink} 
-        isOpen={!isMobile || sidebarOpen} 
-        toggleSidebar={toggleSidebar}
-      />
+      <ParkGuideSidebar activeLink={activeLink} />
       
       <div className="main-content">
-        <div className="header">
-          {isMobile && (
-            <button className="menu-toggle" onClick={toggleSidebar}>
-              <FontAwesomeIcon icon={faBars} />
-            </button>
-          )}
-          <div className="header-title">
-            <h1>Guide Dashboard</h1>
-            <p>Welcome back, John! Here's an overview of your activities.</p>
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading dashboard data...</p>
           </div>
-          <div className="header-actions">
-            <button className="btn-schedule">
-              <i className="fa-solid fa-calendar-days"></i>
-              <span>View Schedule</span>
-            </button>
-            <button className="btn-tour">
-              <i className="fa-solid fa-play"></i>
-              <span>Start Tour</span>
-            </button>
+        ) : error ? (
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button className="btn-retry" onClick={() => window.location.reload()}>Retry</button>
           </div>
-        </div>
-        
-        <div className="stats-cards">
-          <div className="stat-card">
-            <div className="stat-info">
-              <h3>Today's Tours</h3>
-              <div className="stat-number">3</div>
-              <div className="stat-detail">
-                <i className="fa-solid fa-clock"></i>
-                <span>Next tour in 45 minutes</span>
+        ) : (
+          <>
+            <div className="dashboard-header">
+              <div className="welcome-section">
+                <h1>Welcome back, {stats.user.username}</h1>
+                <p>This is your guide certification progress overview</p>
               </div>
-            </div>
-            <div className="stat-icon">
-              <i className="fa-solid fa-play"></i>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-info">
-              <h3>Visitors Today</h3>
-              <div className="stat-number">24</div>
-              <div className="stat-detail">
-                <i className="fa-solid fa-users"></i>
-                <span>8 more than yesterday</span>
-              </div>
-            </div>
-            <div className="stat-icon">
-              <i className="fa-solid fa-users"></i>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-info">
-              <h3>Wildlife Sightings</h3>
-              <div className="stat-number">12</div>
-              <div className="stat-detail">
-                <i className="fa-solid fa-tree"></i>
-                <span>4 orangutans spotted today</span>
-              </div>
-            </div>
-            <div className="stat-icon">
-              <i className="fa-solid fa-tree"></i>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-info">
-              <h3>Unread Messages</h3>
-              <div className="stat-number">5</div>
-              <div className="stat-detail">
-                <i className="fa-solid fa-envelope"></i>
-                <span>2 new since yesterday</span>
-              </div>
-            </div>
-            <div className="stat-icon">
-              <i className="fa-solid fa-envelope"></i>
-            </div>
-          </div>
-        </div>
-        
-        <div className="dashboard-layout">
-          <div className="upcoming-tours">
-            <div className="section-header">
-              <h2>Upcoming Tours</h2>
-              <p>Your scheduled tours for today</p>
+              
             </div>
             
-            <div className="tour-list">
-              <div className="tour-item">
-                <div className="tour-icon">
-                  <i className="fa-solid fa-tree"></i>
+            {/* Summary Stats Cards */}
+            <div className="stats-overview">
+              <div className="stats-card">
+                <div className="stats-icon certifications">
+                  <i className="icon fa-solid fa-certificate"></i>
                 </div>
-                <div className="tour-info">
-                  <h3>Morning Wildlife Walk</h3>
-                  <div className="tour-details">
-                    <div className="detail">
-                      <i className="fa-solid fa-clock"></i>
-                      <span>10:30 AM - 12:00 PM</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-location-dot"></i>
-                      <span>Main Entrance</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-users"></i>
-                      <span>8 visitors</span>
-                    </div>
+                <div className="stats-info">
+                  <h3>Certifications</h3>
+                  <div className="stats-number">{stats.certifications.total}</div>
+                  <div className="stats-detail">
+                    {/* <span>{stats.certifications.active} Active</span> •  */}
+                    <span>{stats.certifications.inProgress} In Progress</span>
                   </div>
-                </div>
-                <div className="tour-status">
-                  <span className="status-tag">Upcoming</span>
                 </div>
               </div>
               
-              <div className="tour-item">
-                <div className="tour-icon">
-                  <i className="fa-solid fa-tree"></i>
+              {/* <div className="stats-card">
+                <div className="stats-icon progress">
+                  <i className="icon fa-solid fa-spinner"></i>
                 </div>
-                <div className="tour-info">
-                  <h3>Orangutan Feeding Session</h3>
-                  <div className="tour-details">
-                    <div className="detail">
-                      <i className="fa-solid fa-clock"></i>
-                      <span>2:30 PM - 3:30 PM</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-location-dot"></i>
-                      <span>Feeding Platform 2</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-users"></i>
-                      <span>12 visitors</span>
-                    </div>
+                <div className="stats-info">
+                  <h3>Overall Progress</h3>
+                  <div className="stats-number">{calculateOverallProgress()}%</div>
+                  <div className="stats-detail">
+                    <span>{stats.progress.topicsDone}/{stats.progress.totalTopics} Topics</span> • 
+                    <span>{stats.progress.quizzesPassed}/{stats.progress.totalQuizzes} Quizzes</span>
                   </div>
                 </div>
-                <div className="tour-status">
-                  <span className="status-tag">Upcoming</span>
-                </div>
-              </div>
+              </div> */}
               
-              <div className="tour-item">
-                <div className="tour-icon">
-                  <i className="fa-solid fa-tree"></i>
+              <div className="stats-card">
+                <div className="stats-icon notifications">
+                  <i className="icon fa-solid fa-bell"></i>
                 </div>
-                <div className="tour-info">
-                  <h3>Evening Nature Trail</h3>
-                  <div className="tour-details">
-                    <div className="detail">
-                      <i className="fa-solid fa-clock"></i>
-                      <span>5:00 PM - 6:30 PM</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-location-dot"></i>
-                      <span>Eastern Trail</span>
-                    </div>
-                    <div className="detail">
-                      <i className="fa-solid fa-users"></i>
-                      <span>4 visitors</span>
-                    </div>
+                <div className="stats-info">
+                  <h3>Notifications</h3>
+                  <div className="stats-number">{stats.notifications.unread}</div>
+                  <div className="stats-detail">
+                    <span>Unread Messages</span>
+                    <button className="btn-view-all-small" onClick={goToNotifications}>
+                      View All
+                    </button>
                   </div>
-                </div>
-                <div className="tour-status">
-                  <span className="status-tag">Upcoming</span>
-                </div>
-              </div>
-              
-              <div className="view-all">
-                <button className="view-all-btn">View Full Schedule</button>
               </div>
             </div>
           </div>
           
-          <div className="recent-sightings">
+            {/* Main Dashboard Sections */}
+            <div className="dashboard-sections">
+              {/* In Progress Certifications */}
+              <div className="dashboard-section certifications-progress">
             <div className="section-header">
-              <h2>Recent Wildlife Sightings</h2>
-              <p>Reported in the last 24 hours</p>
+                  <h2>In Progress Certifications</h2>
+                  <button className="btn-view-all-small" onClick={goToCertifications}>
+                    View All
+                  </button>
+                </div>
+                
+                <div className="section-content">
+                  {stats.certifications.recent.length > 0 ? (
+                    <div className="cert-progress-cards">
+                      {stats.certifications.recent.map(cert => (
+                        <div key={cert.id} className="cert-progress-card">
+                          <div className="cert-header">
+                            <div className="cert-icon">
+                              <i className="icon fa-solid fa-certificate"></i>
+                            </div>
+                            <h3>{cert.title}</h3>
+                          </div>
+                          
+                          <div className="cert-progress">
+                            <div className="progress-label">
+                              <span>Progress</span>
+                              <span className="progress-percentage">{cert.progress}%</span>
+                  </div>
+                            <div className="progress-bar-container">
+                              <div className="progress-bar" style={{ width: `${cert.progress}%` }}></div>
+                </div>
+              </div>
+              
+                          <div className="cert-actions">
+                            <Link to={`/parkguide/progress-details/${cert.id}`} className="btn-continue">
+                              Continue Learning
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                </div>
+                  ) : (
+                    <div className="empty-state">
+                      <p>You have no certifications in progress.</p>
+                      <button className="btn-browse" onClick={goToCertifications}>
+                        Browse Available Certifications
+                      </button>
+                  </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Recent Notifications */}
+              <div className="dashboard-section recent-notifications">
+                <div className="section-header">
+                  <h2>Recent Notifications</h2>
+                  <button className="btn-view-all-small" onClick={goToNotifications}>
+                    View All
+                  </button>
+                </div>
+                
+                <div className="section-content">
+                  {stats.notifications.recent.length > 0 ? (
+                    <div className="notifications-list">
+                      {stats.notifications.recent.map(notif => (
+                        <div key={notif.id} className={`notification-item ${!notif.read ? 'unread' : ''}`}>
+                          <div className="notification-icon">
+                            <i className="icon fa-solid fa-bell"></i>
+                          </div>
+                          <div className="notification-content">
+                            <h3>{notif.title}</h3>
+                            <p className="notification-date">{formatDate(notif.date)}</p>
+                          </div>
+                          {!notif.read && (
+                            <div className="notification-badge">
+                              <span>New</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-state">
+                      <p>You have no recent notifications.</p>
+                  </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Quick Links & Resources */}
+              <div className="dashboard-section quick-links">
+                <div className="section-header">
+                  <h2>Quick Links</h2>
+                </div>
+                
+                <div className="section-content">
+                  <div className="quick-links-grid">
+                    <Link to="/parkguide/certifications" className="quick-link-card">
+                      <div className="quick-link-icon">
+                        <i className="icon fa-solid fa-certificate"></i>
+                      </div>
+                      <h3>Certifications</h3>
+                      <p>Browse and apply for new certifications</p>
+                    </Link>
+                    
+                    <Link to="/parkguide/profile" className="quick-link-card">
+                      <div className="quick-link-icon">
+                        <i className="icon fa-solid fa-user"></i>
+                      </div>
+                      <h3>Profile</h3>
+                      <p>Update your personal information</p>
+                    </Link>
+                    
+                    <Link to="/parkguide/notifications" className="quick-link-card">
+                      <div className="quick-link-icon">
+                        <i className="icon fa-solid fa-bell"></i>
+                      </div>
+                      <h3>Notifications</h3>
+                      <p>View updates and messages</p>
+                    </Link>
+                    
+                    <Link to="/parkguide/identification" className="quick-link-card">
+                      <div className="quick-link-icon">
+                        <i className="icon fa-solid fa-camera"></i>
+                      </div>
+                      <h3>Species Identification</h3>
+                      <p>Identify species and landmarks</p>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="sightings-list">
-              <div className="sighting-item">
-                <div className="sighting-icon">
-                  <i className="fa-solid fa-tree"></i>
-                </div>
-                <div className="sighting-info">
-                  <div className="sighting-header">
-                    <h3>Orangutan</h3>
-                    <span className="sighting-time">9:15 AM</span>
-                  </div>
-                  <div className="sighting-location">Feeding Platform 1</div>
-                  <div className="sighting-count">Count: 3</div>
-                  <div className="sighting-reporter">Reported by: Sarah</div>
-                </div>
-              </div>
-              
-              <div className="sighting-item">
-                <div className="sighting-icon">
-                  <i className="fa-solid fa-tree"></i>
-                </div>
-                <div className="sighting-info">
-                  <div className="sighting-header">
-                    <h3>Proboscis Monkey</h3>
-                    <span className="sighting-time">11:30 AM</span>
-                  </div>
-                  <div className="sighting-location">Eastern Trail</div>
-                  <div className="sighting-count">Count: 5</div>
-                  <div className="sighting-reporter">Reported by: Michael</div>
-                </div>
-              </div>
-              
-              <div className="sighting-item">
-                <div className="sighting-icon">
-                  <i className="fa-solid fa-tree"></i>
-                </div>
-                <div className="sighting-info">
-                  <div className="sighting-header">
-                    <h3>Hornbill</h3>
-                    <span className="sighting-time">2:45 PM</span>
-                  </div>
-                  <div className="sighting-location">Canopy Walk</div>
-                  <div className="sighting-count">Count: 2</div>
-                  <div className="sighting-reporter">Reported by: You</div>
-                </div>
-              </div>
-              
-              <div className="sighting-item">
-                <div className="sighting-icon">
-                  <i className="fa-solid fa-tree"></i>
-                </div>
-                <div className="sighting-info">
-                  <div className="sighting-header">
-                    <h3>Orangutan</h3>
-                    <span className="sighting-time">4:20 PM</span>
-                  </div>
-                  <div className="sighting-location">Feeding Platform 2</div>
-                  <div className="sighting-count">Count: 1</div>
-                  <div className="sighting-reporter">Reported by: You</div>
-                </div>
-              </div>
-              
-              <div className="add-sighting">
-                <button className="add-sighting-btn">
-                  <i className="fa-solid fa-plus"></i>
-                  <span>Report New Sighting</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-      
-      {/* Backdrop, shown when the sidebar is open */}
-      {isMobile && sidebarOpen && (
-        <div className="sidebar-backdrop" onClick={toggleSidebar}></div>
-      )}
     </div>
   );
 };

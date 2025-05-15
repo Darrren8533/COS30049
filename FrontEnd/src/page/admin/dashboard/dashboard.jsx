@@ -175,12 +175,12 @@ const Dashboard = () => {
             <h1>Admin Dashboard</h1>
             <p>Welcome back! Here's an overview of your park management system.</p>
           </div>
-          <button 
+          {/* <button 
             className="refresh-button"
             onClick={fetchDashboardStats}
           >
             <i className="fas fa-sync-alt"></i> Refresh Data
-          </button>
+          </button> */}
         </div>
         
         {error && (

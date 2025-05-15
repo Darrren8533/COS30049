@@ -28,9 +28,9 @@ const Navbar = () => {
       </div>
       <div className="nav-links">
         <a href="/about">About</a>
-        <a href="/features">Features</a>
-        <a href="/testimonials">Testimonials</a>
         <a href="/contact">Contact</a>
+        <a href="/feedback">Feedback</a>
+        <a href="/map">Map</a>
       </div>
       <div className="auth-buttons">
         {user ? (

@@ -2,6 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './AdminSidebar.css';
 
+const handleLogout = () => {
+  localStorage.removeItem('user');
+  window.location.href = '/';
+};
+
 const AdminSidebar = ({ activeLink, setActiveLink }) => {
   return (
     <div className="sidebar">
@@ -58,10 +63,17 @@ const AdminSidebar = ({ activeLink, setActiveLink }) => {
         >
           <i className="fas fa-file-alt"></i> <span>Data Sensor</span>
         </Link>
+        <Link 
+          to="/admin/feedback" 
+          className={`nav-item ${activeLink === 'feedback' ? 'active' : ''}`}
+          onClick={() => setActiveLink('feedback')}
+        >
+          <i className="fas fa-comments"></i> <span>Feedback</span>
+        </Link>
       </nav>
       
       <div className="sidebar-footer">
-        <Link to="/logout" className="logout-btn">
+        <Link onClick={handleLogout} className="logout-btn">
           <i className="fas fa-sign-out-alt"></i> <span>Logout</span>
         </Link>
       </div>

@@ -1,4 +1,4 @@
-/* 植物识别页面样式 */
+/* Plant Identification Page Styles */
 
 .identification-container {
   display: grid;
@@ -13,7 +13,7 @@
   }
 }
 
-/* 上传区域 */
+/* Upload Section */
 .upload-section {
   width: 100%;
 }
@@ -186,7 +186,7 @@
   100% { transform: rotate(360deg); }
 }
 
-/* 结果区域 */
+/* Result Section */
 .result-section {
   width: 100%;
 }
@@ -302,7 +302,7 @@
   background-color: #e9ecef;
 }
 
-/* 拍摄提示区域 */
+/* Photography Tips Section */
 .tips-section {
   margin-top: 30px;
 }

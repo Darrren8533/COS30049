@@ -20,7 +20,10 @@ import AdminNotifications from './page/admin/notifications/notifications'
 import ParkGuideNotifications from './page/parkguide/notifications/notifications'
 import SensorData from './page/admin/sensorData/sensorData'
 import Identification from './page/parkguide/identification/identification'
-
+import Feedback from './page/user/feedback/feedback'
+import Profile from './page/parkguide/profile/profile'
+import Admin_Feedback from './page/admin/feedback/feedback'
+import Map from './page/user/map/map'
 
 function App() {
   return (
@@ -29,7 +32,8 @@ function App() {
         {/* Default route redirect to homepage */}
         <Route path="/" element={<Homepage />} />
         <Route path="/signin" element={<SignIn />} />
-        
+        <Route path="/feedback" element={<Feedback />} />
+        <Route path="/map" element={<Map />} />
         {/* More routes can be added in the future */}
         {/* <Route path="/about" element={<About />} /> */}
         {/* <Route path="/features" element={<Features />} /> */}
@@ -49,6 +53,7 @@ function App() {
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/sensor-data" element={<SensorData />} />
+        <Route path="/admin/feedback" element={<Admin_Feedback />} />
         {/* Park guide routes */}
         <Route path="/parkguide/dashboard" element={<ParkGuideDashboard />} />
         <Route path="/parkguide/certifications" element={<ParkGuideCertifications />} />
@@ -57,6 +62,7 @@ function App() {
         <Route path="/parkguide/quiz/:id" element={<ParkGuideQuiz />} />
         <Route path="/parkguide/notifications" element={<ParkGuideNotifications />} />
         <Route path="/parkguide/identification" element={<Identification />} />
+        <Route path="/parkguide/profile" element={<Profile />} />
         {/* <Route path="/parkguide/*" element={<ParkGuideRoutes />} /> */}
         
         {/* User authentication routes */}

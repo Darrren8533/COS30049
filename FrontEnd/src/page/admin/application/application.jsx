@@ -25,14 +25,14 @@ const ApplicationManagement = () => {
     setError(null);
     
     try {
-      // 修改请求，为pending标签获取所有pending类型的应用
+      // Modify the request to get all applications of the pending type for the pending tag
       let url = `http://localhost:3000/api/certificate-applications`;
       
       if (status === 'pending') {
-        // 获取所有Pending状态的应用
+        // Get all applications with Pending status
         url += `?statusCategory=pending`;
       } else {
-        // 其他标签页继续使用特定状态
+        // Other tabs continue to use specific status
         const statusValue = status === 'inprogress' ? 'In Progress' : 
                            status === 'rejected' ? 'Rejected' : status;
         url += `?status=${statusValue}`;
@@ -43,7 +43,7 @@ const ApplicationManagement = () => {
     //   console.log(data);
       
       if (data.success) {
-        // 更新特定状态类别的应用状态
+        // Update the application state for the specific status category
         setApplications(prev => ({
           ...prev,
           [status.toLowerCase()]: data.applications
@@ -67,7 +67,7 @@ const ApplicationManagement = () => {
 
   // Tab change handler
   useEffect(() => {
-    // 根据当前活动标签获取相应的数据
+    // Fetch data according to the current active tab
     fetchApplications(activeTab);
   }, [activeTab]);
 
@@ -132,7 +132,7 @@ const ApplicationManagement = () => {
       if (data.success) {
         // If the action was successful, refresh the current tab
         const statusMap = {
-          pending: 'Pending',
+          pending: 'pending',
           inprogress: 'In Progress',
           rejected: 'Rejected'
         };
@@ -141,8 +141,8 @@ const ApplicationManagement = () => {
         
         // Show success message
         setActionSuccess({
-          type: newStatus === 'In Progress' ? 'in-progress' : 'rejected',
-          message: newStatus === 'In Progress'|| 'Certified' 
+          type: newStatus === 'In Progress' || newStatus === 'Certified' ? 'in-progress' : 'rejected',
+          message: newStatus === 'In Progress' || newStatus === 'Certified' 
             ? 'Application successfully approved' 
             : 'Application has been rejected'
         });
@@ -192,7 +192,7 @@ const ApplicationManagement = () => {
           <p className="error-message">{error}</p>
           <button className="btn-retry" onClick={() => {
             const statusMap = {
-              pending: 'Pending',
+              pending: 'pending',
               inprogress: 'In Progress',
               rejected: 'Rejected'
             };
@@ -249,6 +249,20 @@ const ApplicationManagement = () => {
             : app.description}
         </div>
         
+        
+        {app.status === 'In Progress' && (
+          <div className="application-progress">
+            <div className="progress-label">
+              <i className="icon fa-solid fa-spinner"></i>
+              <span>Progress</span>
+              <span className="progress-percentage">{app.progress !== undefined ? `${app.progress}%` : '0%'}</span>
+            </div>
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${app.progress || 0}%` }}></div>
+            </div>
+          </div>
+        )}
+        
         <div className="application-actions">
           <button 
             className="btn-view-details"
@@ -257,7 +271,7 @@ const ApplicationManagement = () => {
             View Details
           </button>
           
-          {/* 所有Pending开头的状态都显示批准/拒绝按钮 */}
+          
           {app.status && app.status.startsWith('Pending') && (
             <div className="approval-actions">
               <button 
@@ -342,9 +356,24 @@ const ApplicationManagement = () => {
                 <span className="detail-label">Description:</span>
                 <p className="detail-value description">{selectedApplication.description}</p>
               </div>
+
+              
+              {selectedApplication.status === 'In Progress' && (
+                <div className="detail-item full-width">
+                  <span className="detail-label">Progress:</span>
+                  <div className="certification-progress">
+                    <div className="progress-bar-container">
+                      <div className="progress-bar" style={{ width: `${selectedApplication.progress || 0}%` }}></div>
+                    </div>
+                    <div className="progress-percentage">
+                      {selectedApplication.progress !== undefined ? `${selectedApplication.progress}%` : '0%'}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
-            {/* 所有Pending开头的状态都显示审批操作部分 */}
+            
             {selectedApplication.status && selectedApplication.status.startsWith('Pending') && (
               <div className="detail-section actions-section">
                 <h3>Review Actions</h3>

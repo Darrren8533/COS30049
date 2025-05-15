@@ -17,8 +17,11 @@ const Certificate = () => {
   const [selectedCertificate, setSelectedCertificate] = useState(null);
   const [confirmPrerequisites, setConfirmPrerequisites] = useState(false);
   const [applicationSuccess, setApplicationSuccess] = useState(false);
+  // Add state for certificate view modal
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [certificateToView, setCertificateToView] = useState(null);
   
-  // 使用导航hook
+  // Use navigation hook
   const navigate = useNavigate();
   
   // Mock user ID - in a real application, this would come from authentication context
@@ -40,9 +43,32 @@ const Certificate = () => {
       const data = await response.json();
       
       if (data.success) {
+        // 处理返回的证书数据，添加显示日期
+        const processedCertificates = data.certificates.map(cert => {
+          const certData = { ...cert };
+          
+          // 处理过期日期
+          if (cert.expiry_date) {
+            const expiryDate = new Date(cert.expiry_date);
+            certData.validUntil = expiryDate.toLocaleDateString();
+            
+            // 如果状态是Expired，设置显示过期日期
+            if (cert.status === 'Expired') {
+              certData.expiredOn = expiryDate.toLocaleDateString();
+            }
+          }
+          
+          // 处理颁发日期
+          if (cert.approvalCertified_date) {
+            certData.issuedOn = new Date(cert.approvalCertified_date).toLocaleDateString();
+          }
+          
+          return certData;
+        });
+        
         setCertificates(prev => ({
           ...prev,
-          owned: data.certificates
+          owned: processedCertificates
         }));
       } else {
         setError(data.message || 'Failed to get certified certificates');
@@ -116,7 +142,7 @@ const Certificate = () => {
           type: app.type,
           description: app.description,
           status: app.status,
-          progress: app.progress || '0%', // Default progress if not available
+          progress: typeof app.progress === 'number' ? app.progress : 0, // 确保progress是数字
           topicsCompleted: app.topicsCompleted || '1 of 4 topics completed', // Default value if not available
           nextTopic: app.nextTopic || 'Wilderness Navigation', // Default value if not available
           approvedOn: app.approvedOn
@@ -248,12 +274,12 @@ const Certificate = () => {
     }
   };
 
-  // 处理Continue按钮点击，导航到进度详情页面
+  // Handle Continue button click, navigate to progress details page
   const handleContinue = (certificateId) => {
     navigate(`/parkguide/progress-details/${certificateId}`);
   };
 
-  // 处理完成证书的认证申请
+  // Handle application for certified certificate
   const handleApplyForCertified = async (certificate) => {
     try {
       const response = await fetch('http://localhost:3000/api/certificate-applications/certified', {
@@ -270,19 +296,84 @@ const Certificate = () => {
       const data = await response.json();
       
       if (data.success) {
-        // 显示成功消息
+        // Show success message
         alert('Certification application submitted successfully! Your certificate will be reviewed.');
         
-        // 刷新证书列表
+        // Refresh certificate list
         fetchInProgressCertificates();
       } else {
-        // 显示错误消息
+        // Show error message
         alert(data.message || 'Certification application failed. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting certification application:', error);
       alert('Certification application failed. Please check your network connection and try again.');
     }
+  };
+
+  // 新增处理证书更新的函数
+  const handleRenew = async (certificate) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/certificate-applications/${certificate.id}/renew`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 显示成功消息
+        alert('Certificate renewal application submitted successfully! Your certificate will be reviewed.');
+        
+        // 刷新证书列表
+        fetchCertifiedCertificates();
+      } else {
+        // 显示错误消息
+        alert(data.message || 'Certificate renewal failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error renewing certificate:', error);
+      alert('Certificate renewal failed. Please check your network connection and try again.');
+    }
+  };
+
+  // Handle View Certificate button click
+  const handleViewCertificate = (certificate) => {
+    setCertificateToView(null); // 清空之前的证书数据
+    setShowCertificateModal(true);
+    setLoading(true);
+    
+    // 使用API获取证书详情
+    fetch(`http://localhost:3000/api/certificates/${certificate.id}/details?userId=${userId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setCertificateToView({
+            ...certificate,
+            details: data.certificate
+          });
+        } else {
+          console.error('Failed to fetch certificate details:', data.message);
+          alert('Failed to load certificate details. Please try again.');
+        }
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching certificate details:', error);
+        alert('Error loading certificate details. Please check your connection and try again.');
+        setLoading(false);
+      });
+  };
+
+  // Handle certificate modal close
+  const handleCloseCertificateModal = () => {
+    setShowCertificateModal(false);
+    setCertificateToView(null);
   };
 
   // Render certification cards
@@ -302,7 +393,7 @@ const Certificate = () => {
             <i className="icon fa-solid fa-certificate"></i>
           </div>
           <h3>{cert.title}</h3>
-          <div className={`status-badge ${cert.status?.toLowerCase()}`}>
+          <div className={`status-badge ${cert.status?.toLowerCase().replace(/\s+/g, '-')}`}>
             {cert.status || 'Pending Approval'}
           </div>
         </div>
@@ -316,7 +407,7 @@ const Certificate = () => {
         {cert.validUntil && (
           <div className="certification-validity">
             <i className="icon fa-solid fa-check"></i>
-            <span>Valid until {cert.validUntil}</span>
+            <span>Expired Date: {cert.validUntil}</span>
           </div>
         )}
         
@@ -355,15 +446,15 @@ const Certificate = () => {
           </div>
         )}
         
-        {cert.progress && (
+        {cert.progress !== undefined && (
           <div className="certification-progress">
             <div className="progress-label">
               <i className="icon fa-solid fa-spinner"></i>
               <span>Progress</span>
-              <span className="progress-percentage">{cert.progress}</span>
+              <span className="progress-percentage">{typeof cert.progress === 'number' ? `${cert.progress}%` : '0%'}</span>
             </div>
             <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${cert.progress}%` }}></div>
+              <div className="progress-bar" style={{ width: `${typeof cert.progress === 'number' ? cert.progress : 0}%` }}></div>
             </div>
             <div className="progress-details">
               <span>{cert.topicsCompleted}</span>
@@ -419,13 +510,22 @@ const Certificate = () => {
               </button>
             </>
           )}
-          {(cert.status !== 'Available' && cert.status !== 'In Progress' && cert.status !== 'Active') && (
+          {(cert.status === 'Expired') && (
+            <>
+              <button className="btn-view-details" onClick={() => handleViewCertificate(cert)}>View Certificate</button>
+              <button className="btn-apply-certificate" onClick={() => handleRenew(cert)}>
+                <i className="icon fa-solid fa-sync"></i>
+                Renew
+              </button>
+            </>
+          )}
+          {(cert.status !== 'Available' && cert.status !== 'In Progress' && cert.status !== 'Active' && cert.status !== 'Expired') && (
             <button className="btn-view-details">View Details</button>
           )}
           {(cert.status === 'Active') && (
-            <button className="btn-view-details">View Certificate</button>
+            <button className="btn-view-details" onClick={() => handleViewCertificate(cert)}>View Certificate</button>
           )}
-          {(cert.status === 'Available' || cert.status === 'In Progress' || cert.status === 'Active') ? null : (
+          {(cert.status === 'Available' || cert.status === 'In Progress' || cert.status === 'Active' || cert.status === 'Expired') ? null : (
             <button className="btn-more-options">
               <i className="icon fa-solid fa-ellipsis"></i>
             </button>
@@ -542,6 +642,186 @@ const Certificate = () => {
     );
   };
 
+  // Render certificate view modal
+  const renderCertificateModal = () => {
+    if (!showCertificateModal) return null;
+    
+    if (!certificateToView || !certificateToView.details) {
+      return (
+        <div className="modal-overlay">
+          <div className="modal-content certificate-view-modal">
+            <div className="modal-header">
+              <h2>Certificate</h2>
+              <button className="modal-close" onClick={handleCloseCertificateModal}>
+                <i className="icon fa-solid fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="certificate-loading">
+              <div className="loading-spinner"></div>
+              <p>Loading certificate details...</p>
+            </div>
+            
+            <div className="modal-footer">
+              <button className="btn-close" onClick={handleCloseCertificateModal}>Close</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // 从API获取的详细信息
+    const details = certificateToView.details;
+    
+    // 格式化日期
+    const formatDate = (dateString) => {
+      if (!dateString) return '';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    };
+
+    const today = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content certificate-view-modal">
+          <div className="modal-header">
+            <h2>Certificate</h2>
+            <button className="modal-close" onClick={handleCloseCertificateModal}>
+              <i className="icon fa-solid fa-times"></i>
+            </button>
+          </div>
+
+          <div className="certificate-document">
+            <div className="certificate-badge-icon">
+              <i className="fa-solid fa-award"></i>
+            </div>
+            
+            <h2 className="certificate-title">CERTIFICATE OF PROFICIENCY</h2>
+            
+            <p className="certificate-issuer">{details.issuer}</p>
+            
+            <div className="certificate-content">
+              <p>This certifies that upon successful completion of all requirements,</p>
+              <p className="certificate-bearer">the bearer of this certificate</p>
+              <p>will be recognized as a certified professional in</p>
+              <h3 className="certificate-program">{details.name}</h3>
+              <p>having demonstrated proficiency in all required competencies</p>
+            </div>
+            
+            <div className="certificate-details">
+              <h4>CERTIFICATION DETAILS</h4>
+              
+              <div className="certificate-detail-grid">
+                <div className="detail-item">
+                  <div className="detail-icon"><i className="fa-solid fa-tag"></i></div>
+                  <div className="detail-group">
+                    <span className="detail-label">Type</span>
+                    <span className="detail-value">{details.type}</span>
+                  </div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-icon"><i className="fa-solid fa-clock"></i></div>
+                  <div className="detail-group">
+                    <span className="detail-label">Duration</span>
+                    <span className="detail-value">{details.duration}</span>
+                  </div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-icon"><i className="fa-solid fa-calendar-alt"></i></div>
+                  <div className="detail-group">
+                    <span className="detail-label">Validity</span>
+                    <span className="detail-value">{details.validity}</span>
+                  </div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-icon"><i className="fa-solid fa-id-card"></i></div>
+                  <div className="detail-group">
+                    <span className="detail-label">Certificate ID</span>
+                    <span className="detail-value">CERT-{details.id}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="certificate-description">
+                <h5>Description</h5>
+                <p>{details.description}</p>
+              </div>
+              
+              <div className="certificate-requirements">
+                <h5>Requirements</h5>
+                <ul>
+                  {details.requirements.map((req, index) => (
+                    <li key={index}>{req}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="certificate-topics">
+                <h5>Course Topics</h5>
+                <ul>
+                  {details.topics.map((topic, index) => (
+                    <li key={topic.id || index}>
+                      {topic.title} - {topic.description} ({topic.duration})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="certificate-completion">
+                <h5>Completion Requirements</h5>
+                <p>{details.completionRequirements}</p>
+              </div>
+            </div>
+            
+            <div className="certificate-footer">
+              <div className="certificate-signature">
+                <span>Authorized Signature</span>
+                <div className="signature-line">
+                  <i className="fa-solid fa-signature"></i>
+                </div>
+                <span>Issued by: {details.issuer}</span>
+              </div>
+              
+              <div className="certificate-date">
+                <span>Date of Issue</span>
+                <div className="date-line">
+                  {certificateToView.issuedOn || (details.user?.approvalDate ? formatDate(details.user.approvalDate) : today)}
+                </div>
+                <span className="certificate-badge">
+                  <i className="fa-solid fa-check-circle"></i>
+                  Official Document
+                </span>
+              </div>
+            </div>
+            
+            <div className="certificate-watermark">
+              <i className="fa-solid fa-tree"></i>
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button className="btn-print" onClick={() => window.print()}>
+              <i className="fa-solid fa-print"></i>
+              Print Certificate
+            </button>
+            <button className="btn-close" onClick={handleCloseCertificateModal}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render content based on active tab
   const renderTabContent = () => {
     if (loading) {
@@ -646,10 +926,10 @@ const Certificate = () => {
             <div className="certificate-actions">
               {(activeTab === 'owned' || activeTab === 'inProgress' || activeTab === 'available') && (
                 <>
-                  <button className="btn-view-calendar">
+                  {/* <button className="btn-view-calendar">
                     <i className="icon fa-solid fa-calendar-days"></i>
                     View Calendar
-                  </button>
+                  </button> */}
                   <button className="btn-apply" onClick={() => handleApply({ 
                     id: 'CERT-1001',
                     title: 'Search and Rescue Operations',
@@ -693,10 +973,10 @@ const Certificate = () => {
                 Filter
               </button>
               
-              <button className="btn-export">
+              {/* <button className="btn-export">
                 <i className="icon fa-solid fa-file-export"></i>
                 Export
-              </button>
+              </button> */}
             </div>
 
             {(activeTab === 'owned' || activeTab === 'inProgress' || activeTab === 'available') && (
@@ -731,6 +1011,9 @@ const Certificate = () => {
       
       {/* Render the apply modal */}
       {renderApplyModal()}
+      
+      {/* Render the certificate view modal */}
+      {renderCertificateModal()}
     </div>
   );
 };

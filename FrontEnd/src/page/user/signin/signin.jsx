@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './signin.css';
-// 引入Font Awesome组件
+// Import Font Awesome components
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faHome, faArrowRight, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
@@ -73,28 +73,39 @@ const SignIn = () => {
         const data = await response.json();
         
         if (response.ok) {
-          // 登录成功
+          // Login successful
           setLoginMessage({ 
             type: 'success', 
             text: 'Login successful! Redirecting...' 
           });
           
-          // 如果选择了"记住我"，可以在localStorage中存储相关信息
+          // If "remember me" is selected, store relevant information in localStorage
           if (formData.rememberMe) {
             localStorage.setItem('userEmail', formData.email);
           } else {
             localStorage.removeItem('userEmail');
           }
           
-          // 存储用户信息
+          // Store user information
           localStorage.setItem('user', JSON.stringify(data.user));
           
-          // 重定向到首页或仪表板（3秒后）
+          // Redirect based on user role
           setTimeout(() => {
-            window.location.href = '/';
+            const userRole = data.user.userRole.toLowerCase();
+            
+            if (userRole === 'admin') {
+              // Admin goes to admin dashboard
+              window.location.href = '/admin/dashboard';
+            } else if (userRole === 'guide' || userRole === 'parkguide') {
+              // Guide goes to guide dashboard
+              window.location.href = '/parkguide/dashboard';
+            } else {
+              // Default to home page for visitors or other roles
+              window.location.href = '/';
+            }
           }, 1500);
         } else {
-          // 登录失败
+          // Login failed
           setLoginMessage({ 
             type: 'error', 
             text: data.message || 'Login failed. Please try again.' 

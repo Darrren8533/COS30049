@@ -138,13 +138,13 @@ const Certificate = () => {
             <h1>Certifications</h1>
             <p>Manage all park guide certifications</p>
           </div>
-          <div className="user-profile">
+          {/* <div className="user-profile">
             <div className="notifications">
               <i className="far fa-bell"></i>
               <span className="notification-badge">3</span>
             </div>
             <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&auto=format&fit=crop" alt="Admin" className="user-avatar" />
-          </div>
+          </div> */}
         </div>
         
         <div className="certification-container">
