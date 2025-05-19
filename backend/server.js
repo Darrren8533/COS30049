@@ -1,6 +1,6 @@
 const express = require('express'); // Import the Express framework
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
@@ -8,6 +8,9 @@ const path = require('path');
 const fs = require('fs');
 const ort = require('onnxruntime-node');
 const sharp = require('sharp');
+const { android } = require('../react-native/expoApp/app.config');
+// Add nodemailer for OTP verification
+const nodemailer = require('nodemailer');
 
 const app = express(); // Create an instance of Express
 const PORT = process.env.PORT || 3000; // Set the port
@@ -40,14 +43,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:8081'],
+  origin: ['http://localhost:5173', 'http://localhost:8081','http://172.17.2.9:8081','http://172.17.19.45:8081'],
   credentials: true
 }));
 app.use(bodyParser.json());
 
 // Enable CORS for all routes
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  
+  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   if (req.method === 'OPTIONS') {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
@@ -84,7 +89,51 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// Login API
+// OTP storage - in a production environment, this should be in a database
+const otpStore = new Map(); // Map to store OTP codes: { email: { code: string, expiresAt: Date } }
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'laudarren911@gmail.com', // Replace with your email
+    pass: 'gmth rtah tfer xclu'     // Replace with your app password or email password
+  }
+});
+
+// Function to generate OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Function to send OTP via email
+async function sendOTPEmail(email, otp) {
+  const mailOptions = {
+    from: 'laudarren911@gmail.com', // Replace with your email
+    to: email,
+    subject: 'ParkGuide Login Verification Code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        <h2 style="color: #2ecc71;">ParkGuide Login Verification</h2>
+        <p>Your verification code for login is:</p>
+        <h1 style="font-size: 32px; letter-spacing: 2px; background-color: #f8f9fa; padding: 10px; text-align: center; border-radius: 5px;">${otp}</h1>
+        <p>This code will expire in 10 minutes.</p>
+        <p>If you didn't request this code, please ignore this email or contact support if you have concerns.</p>
+        <p style="margin-top: 20px; font-size: 12px; color: #7f8c8d;">This is an automated message, please do not reply.</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+}
+
+// Login API - First stage: Email validation and OTP generation
 app.post('/api/signin', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -94,8 +143,6 @@ app.post('/api/signin', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
-    
-    
     
     // Query user from database
     const connection = await pool.getConnection();
@@ -110,34 +157,73 @@ app.post('/api/signin', async (req, res) => {
       
       // User does not exist
       if (users.length === 0) {
-        return res.status(401).json({ success: false, message: 'User does not exist' });
+        return res.status(401).json({ success: false, message: 'Invalid email or password' });
       }
       
       const user = users[0];
       
-      const isPasswordValid = (password === user.password);
+      // Compare the provided password with the hashed password in the database
+      const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
         return res.status(401).json({ success: false, message: 'Invalid email or password' });
       }
-
-      console.log(password);
-      console.log(user.password);
       
-      // Generate user info (without password)
-      const userInfo = {
-        userId: user.userId,
-        username: user.username,
-        email: user.email,
-        userRole: user.userRole
-      };
+      // Special accounts that bypass OTP verification
+      const bypassOTPEmails = ['sarah@parkguide.com', 'admin@parkguide.com'];
       
-      // Return success response
-      res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        user: userInfo
+      // If email is in the bypass list, skip OTP and log in directly
+      if (bypassOTPEmails.includes(email.toLowerCase())) {
+        // Generate user info (without password)
+        const userInfo = {
+          userId: user.userId,
+          username: user.username,
+          email: user.email,
+          userRole: user.userRole
+        };
+        
+        // Return success response for direct login
+        return res.status(200).json({
+          success: true,
+          message: 'Login successful',
+          user: userInfo
+        });
+      }
+      
+      // For all other users, proceed with OTP verification
+      // Password is valid, generate and send OTP
+      const otp = generateOTP();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
+      
+      // Store OTP in memory (in production, this should be in a database)
+      otpStore.set(email, {
+        code: otp,
+        expiresAt,
+        user: {
+          userId: user.userId,
+          username: user.username,
+          email: user.email,
+          userRole: user.userRole
+        }
       });
+      
+      // Send OTP via email
+      const emailSent = await sendOTPEmail(email, otp);
+      
+      if (emailSent) {
+        return res.status(200).json({
+          success: true,
+          message: 'Verification code sent to your email',
+          requiresOTP: true,
+          email: email
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification code. Please try again.'
+        });
+      }
     } catch (dbError) {
       connection.release();
       console.error('Database query error:', dbError);
@@ -149,6 +235,66 @@ app.post('/api/signin', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'An error occurred during login'
+    });
+  }
+});
+
+// OTP Verification API - Second stage of login
+app.post('/api/verify-otp', (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and verification code are required'
+      });
+    }
+    
+    // Check if OTP exists for this email
+    if (!otpStore.has(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'No verification code requested for this email or code has expired'
+      });
+    }
+    
+    const otpData = otpStore.get(email);
+    
+    // Check if OTP has expired
+    if (new Date() > otpData.expiresAt) {
+      otpStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.'
+      });
+    }
+    
+    // Check if OTP is correct
+    if (otpData.code !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code'
+      });
+    }
+    
+    // OTP is valid, complete login
+    const userInfo = otpData.user;
+    
+    // Clean up OTP store
+    otpStore.delete(email);
+    
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: userInfo
+    });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during verification'
     });
   }
 });
@@ -1719,7 +1865,7 @@ app.post('/api/certificate-applications', async (req, res) => {
       
       // Check if application already exists
       const [appResults] = await connection.execute(
-        'SELECT * FROM certificate_applications WHERE user_id = ? AND certificate_id = ?',
+        'SELECT * FROM certificate_applications WHERE user_id = ? AND certificate_id = ? AND status != "Rejected"',
         [userId, certificateId]
       );
       
@@ -1729,6 +1875,30 @@ app.post('/api/certificate-applications', async (req, res) => {
           success: false,
           message: 'Application already exists for this certificate'
         });
+      }
+      
+      // 检查是否有被拒绝的申请
+      const [rejectedAppResults] = await connection.execute(
+        'SELECT * FROM certificate_applications WHERE user_id = ? AND certificate_id = ? AND status = "Rejected"',
+        [userId, certificateId]
+      );
+      
+      if (rejectedAppResults.length > 0) {
+        // 如果有被拒绝的申请，更新它的状态而不是创建新记录
+        await connection.execute(
+          'UPDATE certificate_applications SET status = "Pending for Registration", application_date = NOW() WHERE user_id = ? AND certificate_id = ?',
+          [userId, certificateId]
+        );
+        
+        connection.release();
+        
+        // 返回成功响应
+        res.status(200).json({
+          success: true,
+          message: 'Application resubmitted successfully',
+          applicationId: rejectedAppResults[0].application_id
+        });
+        return;
       }
       
       // Insert new application with status 'Pending for Registration'
@@ -1763,14 +1933,14 @@ app.post('/api/certificate-applications', async (req, res) => {
 app.get('/api/users/:userId/certificate-applications', async (req, res) => {
   try {
     const userId = req.params.userId;
-    // 修改默认值，允许查询所有状态类型的应用，如果未指定，则获取所有待处理类型
+    // Modify the default value to allow querying all types of applications, if not specified, then get all pending types
     const status = req.query.status || null; 
     
     // Get database connection
     const connection = await pool.getConnection();
     
     try {
-      // 构建查询条件
+      // Construct query conditions
       let whereClause = 'a.user_id = ?';
       let queryParams = [userId];
       
@@ -1778,7 +1948,7 @@ app.get('/api/users/:userId/certificate-applications', async (req, res) => {
         whereClause += ' AND a.status = ?';
         queryParams.push(status);
       } else {
-        // 如果未指定状态，默认获取所有待处理类型的申请
+        // If not specified, default to getting all pending types of applications
         whereClause += ' AND a.status IN ("Pending", "Pending for Registration", "Pending for Certified")';
       }
       
@@ -1826,10 +1996,10 @@ app.get('/api/users/:userId/certificate-applications', async (req, res) => {
           [userId, certificateId]
         );
         
-        const totalTopics = totalTopicsResult[0].total || 1; // 避免除以零
+        const totalTopics = totalTopicsResult[0].total || 1; // Avoid dividing by zero
         const completedTopics = completedTopicsResult[0].completed || 0;
         
-        // 计算该证书的进度百分比
+        // Calculate the progress percentage for this certificate
         const progressPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
         
         formattedApplications.push({
@@ -1878,16 +2048,16 @@ app.get('/api/certificate-applications', async (req, res) => {
     const connection = await pool.getConnection();
     
     try {
-      // 构建查询条件
-      let whereClause = '1=1'; // 默认条件
+      // Build query conditions
+      let whereClause = '1=1'; // Default condition
       let params = [];
       
       if (status) {
-        // 按特定状态筛选
+        // Filter by specific status
         whereClause += ' AND ca.status = ?';
         params.push(status);
       } else if (statusCategory === 'pending') {
-        // 获取所有pending类型的应用
+        // Get all applications of pending type
         whereClause += " AND ca.status LIKE 'Pending%'";
       }
       
@@ -2012,19 +2182,38 @@ app.patch('/api/certificate-applications/:id/status', async (req, res) => {
       
       const currentApp = appResults[0];
       
+
+      // console.log('Current application status:', currentApp.status);
+      // console.log('New status:', status);
+      // console.log('Status condition check:', 
+      //            status === 'Certified' && 
+      //            (currentApp.status === 'In Progress' || currentApp.status === 'Pending for Certified'));
+      
       // Set appropriate date field based on new status
       let dateFields = {};
       
+
+      function formatDateForMySQL(date) {
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+      }
+      
       if (status === 'In Progress' && 
          (currentApp.status === 'Pending' || currentApp.status === 'Pending for Registration')) {
-        dateFields = { approvalRegister_date: new Date() };
+        dateFields = { approvalRegister_date: formatDateForMySQL(new Date()) };
       } else if (status === 'Certified' && 
-                (currentApp.status === 'In Progress' || currentApp.status === 'Pending for Certified')) {
+                (currentApp.status.toLowerCase() === 'in progress' || 
+                 currentApp.status.toLowerCase() === 'pending for certified')) {
+        const now = new Date();
+        const expiryDate = new Date(now.getTime() + 1095 * 24 * 60 * 60 * 1000); // 3 years from now
+        
         dateFields = { 
-          approvalCertified_date: new Date(),
-          expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
+          approvalCertified_date: formatDateForMySQL(now),
+          expiry_date: formatDateForMySQL(expiryDate)
         };
       }
+
+      // console.log('Formatted approval date:', dateFields.approvalCertified_date);
+      // console.log('Formatted expiry date:', dateFields.expiry_date);
       
       // Build SQL query dynamically based on which fields to update
       let setClause = 'status = ?';
@@ -2046,6 +2235,10 @@ app.patch('/api/certificate-applications/:id/status', async (req, res) => {
       }
       
       params.push(applicationId);
+      
+
+      // console.log('SQL query:', `UPDATE certificate_applications SET ${setClause} WHERE application_id = ?`);
+      // console.log('SQL parameters:', params);
       
       // Update application
       const [result] = await connection.execute(
@@ -2505,6 +2698,76 @@ app.post('/api/certificate-applications/certified', async (req, res) => {
     });
   }
 });
+// Add API endpoint - Renew expired certificates
+app.post('/api/certificate-applications/:certificateId/renew', async (req, res) => {
+  try {
+    const { certificateId } = req.params;
+    const { userId } = req.body;
+    
+    if (!userId || !certificateId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: userId and certificateId are required'
+      });
+    }
+    
+    // Get database connection
+    const connection = await pool.getConnection();
+    
+    try {
+      // Start transaction
+      await connection.beginTransaction();
+      
+      // Check if certificate application exists and its status is "Expired"
+      const [applications] = await connection.execute(
+        `SELECT * FROM certificate_applications 
+         WHERE user_id = ? AND certificate_id = ? AND status = 'Expired'`,
+        [userId, certificateId]
+      );
+      
+      if (applications.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json({
+          success: false,
+          message: 'No expired certificate found'
+        });
+      }
+      
+      // Update application status to "Pending for Certified"
+      await connection.execute(
+        `UPDATE certificate_applications 
+         SET status = 'Pending for Certified'
+         WHERE user_id = ? AND certificate_id = ?`,
+        [userId, certificateId]
+      );
+      
+      // Commit transaction
+      await connection.commit();
+      
+      // Return success
+      res.status(200).json({
+        success: true,
+        message: 'Certificate renewal application submitted for review'
+      });
+      
+    } catch (dbError) {
+      // Rollback on error
+      await connection.rollback();
+      connection.release();
+      console.error('Database error processing certificate renewal:', dbError);
+      throw dbError;
+    } finally {
+      if (connection) connection.release();
+    }
+  } catch (error) {
+    console.error('Error processing certificate renewal:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while processing your certificate renewal'
+    });
+  }
+});
 
 // Get User's Certified Certificates API
 app.get('/api/users/:userId/certified-certificates', async (req, res) => {
@@ -2532,19 +2795,48 @@ app.get('/api/users/:userId/certified-certificates', async (req, res) => {
         JOIN 
           certificates c ON a.certificate_id = c.certificateCode
         WHERE 
-          a.user_id = ? AND a.status = 'Certified'
+          a.user_id = ? AND (a.status = 'Certified' OR a.status = 'Expired')
         ORDER BY 
           a.approvalCertified_date DESC`,
         [userId]
       );
       
+      // 添加检查过期证书的逻辑
+      const currentDate = new Date();
+      const updatedApplications = [];
+      const expiredApplicationIds = [];
+      
+      // 检查每一个证书是否过期
+      for (const app of applications) {
+        if (app.expiry_date && app.status === 'Certified') {
+          const expiryDate = new Date(app.expiry_date);
+          
+          // 如果证书已过期，标记为过期状态
+          if (expiryDate < currentDate) {
+            app.status = 'Expired';
+            expiredApplicationIds.push(app.application_id);
+          }
+        }
+        updatedApplications.push(app);
+      }
+      
+      // 如果有已过期的证书，更新数据库状态
+      if (expiredApplicationIds.length > 0) {
+        // 使用IN子句一次更新多个证书
+        const placeholders = expiredApplicationIds.map(() => '?').join(',');
+        await connection.execute(
+          `UPDATE certificate_applications SET status = 'Expired' WHERE application_id IN (${placeholders})`,
+          [...expiredApplicationIds]
+        );
+      }
+      
       // Format the certificate data for frontend
-      const formattedCertificates = applications.map(app => ({
+      const formattedCertificates = updatedApplications.map(app => ({
         id: app.id,
         title: app.title,
         type: app.type,
         description: app.description,
-        status: 'Active',
+        status: app.status === 'Certified' ? 'Active' : app.status, // 保持与前端一致，Certified显示为Active
         issuedOn: app.approvalCertified_date ? 
           new Date(app.approvalCertified_date).toLocaleDateString('en-US', {
             month: 'long',
@@ -2576,6 +2868,53 @@ app.get('/api/users/:userId/certified-certificates', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'An error occurred while fetching certified certificates'
+    });
+  }
+});
+
+//get user profile
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const connection = await pool.getConnection();
+    const [user] = await connection.execute(
+      'SELECT * FROM users WHERE userId = ?',
+      [userId]
+    );
+    connection.release();
+    res.status(200).json({
+      success: true,
+      user: user[0]
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching user profile'
+    });
+  }
+});
+
+//update user profile
+app.put('/api/users/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { username, email, phoneNumber, fullName, bio, experience } = req.body;
+    const connection = await pool.getConnection();
+    const [result] = await connection.execute(
+      'UPDATE users SET username = ?, email = ?, phoneNumber = ?, fullName = ?, bio = ?, experience = ? WHERE userId = ?',
+      [username, email, phoneNumber, fullName, bio, experience, userId]
+    );
+    connection.release();
+    res.status(200).json({
+      success: true,
+      message: 'User profile updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while updating user profile'
     });
   }
 });
@@ -2687,11 +3026,15 @@ app.post('/api/admin/users', authenticateToken, async (req, res) => {
         }
       }
 
-      // Insert new user
+      // Hash the password before storing it
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Insert new user with hashed password
       const userRole = role || 'user'; // Default to 'user' if role not provided
       const [result] = await connection.execute(
         'INSERT INTO users (username, email, password, userRole) VALUES (?, ?, ?, ?)',
-        [username, email, password, userRole]
+        [username, email, hashedPassword, userRole]
       );
 
       connection.release();
@@ -2733,7 +3076,7 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
     }
 
     const userId = req.params.id;
-    const { username, email, role, status } = req.body;
+    const { username, email, role, status, password } = req.body;
     
     // Validate required fields
     if (!username || !email) {
@@ -2807,9 +3150,13 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
       
       // Build query based on whether password is being updated
       let query, params;
-      if (req.body.password) {
+      if (password) {
+        // Hash the password before storing it
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        
         query = 'UPDATE users SET username = ?, email = ?, userRole = ?, password = ? WHERE userId = ?';
-        params = [username, email, userRole, req.body.password, userId];
+        params = [username, email, userRole, hashedPassword, userId];
       } else {
         query = 'UPDATE users SET username = ?, email = ?, userRole = ? WHERE userId = ?';
         params = [username, email, userRole, userId];
@@ -3431,7 +3778,7 @@ app.get('/api/sensor-data/history', async (req, res) => {
       const endDate = new Date();
       const startDate = new Date(endDate);
       startDate.setDate(startDate.getDate() - 1);
-      console.log(startDate, endDate);
+      // console.log(startDate, endDate);
       query = 'SELECT * FROM sensor_readings WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp DESC';
       params = [startDate, endDate];
     }
@@ -3501,12 +3848,581 @@ app.post('/api/sensor-data', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`); // Log the server URL
-});
+
 
 process.on('uncaughtException', (error) => {
   console.error('error:', error);
   
+});
+
+// Get certificate details API
+app.get('/api/certificates/:certificateId/details', async (req, res) => {
+  try {
+    const { certificateId } = req.params;
+    const userId = req.query.userId;
+    
+    if (!certificateId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Certificate ID is required'
+      });
+    }
+    
+    // Get database connection
+    const connection = await pool.getConnection();
+    
+    try {
+      // Get certificate basic information
+      const [certificateResults] = await connection.execute(
+        `SELECT 
+          c.certificateCode, 
+          c.certificateName, 
+          c.certificateType, 
+          c.description, 
+          c.requirements
+        FROM 
+          certificates c
+        WHERE 
+          c.certificateCode = ?`,
+        [certificateId]
+      );
+      
+      if (certificateResults.length === 0) {
+        connection.release();
+        return res.status(404).json({
+          success: false,
+          message: 'Certificate not found'
+        });
+      }
+      
+      const certificate = certificateResults[0];
+      
+      // Get user-specific certificate information if userId provided
+      let userCertificate = null;
+      if (userId) {
+        const [userCertResults] = await connection.execute(
+          `SELECT 
+            a.status,
+            a.application_date,
+            a.approvalRegister_date,
+            a.approvalCertified_date,
+            a.expiry_date,
+            a.progress_percent
+          FROM 
+            certificate_applications a
+          WHERE 
+            a.certificate_id = ? AND a.user_id = ?`,
+          [certificateId, userId]
+        );
+        
+        if (userCertResults.length > 0) {
+          userCertificate = userCertResults[0];
+        }
+      }
+      
+      // Get certificate topics
+      const [topicResults] = await connection.execute(
+        `SELECT 
+          id,
+          title,
+          description
+        FROM 
+          certificate_topics
+        WHERE 
+          certificate_id = ?
+        ORDER BY
+          id ASC`,
+        [certificateId]
+      );
+      
+      // Parse requirements if stored as string
+      let requirementsList = [];
+      if (certificate.requirements) {
+        if (typeof certificate.requirements === 'string') {
+          requirementsList = certificate.requirements
+            .split('\n')
+            .filter(line => line.trim() !== '')
+            .map(line => line.replace(/^-\s*/, '').trim());
+        } else {
+          requirementsList = [certificate.requirements];
+        }
+      }
+      
+      // Format the topics for display
+      const formattedTopics = topicResults.map((topic, index) => ({
+        id: topic.id,
+        title: topic.title,
+        description: topic.description,
+        duration: index === 2 ? '2 weeks' : '1 week' // Example: make topic 3 longer
+      }));
+      
+      // Build the complete certificate details object
+      const certificateDetails = {
+        id: certificate.certificateCode,
+        name: certificate.certificateName,
+        type: certificate.certificateType,
+        description: certificate.description,
+        requirements: requirementsList.length > 0 ? requirementsList : [
+          'Minimum 2 years of experience in park services',
+          'First aid and CPR certification',
+          'Knowledge of local flora and fauna',
+          'Completion of park ranger training program'
+        ],
+        topics: formattedTopics.length > 0 ? formattedTopics : [
+          { title: 'Introduction to Park Management', description: 'Overview of park management principles and practices.', duration: '1 week' },
+          { title: 'Visitor Safety Protocols', description: 'Learn essential visitor safety protocols and emergency procedures.', duration: '1 week' },
+          { title: 'Environmental Conservation', description: 'Study of environmental conservation techniques and best practices.', duration: '2 weeks' },
+          { title: 'Wildlife Management', description: 'Understanding wildlife behavior and management strategies.', duration: '1 week' },
+          { title: 'Park Regulations and Enforcement', description: 'Overview of park regulations and enforcement procedures.', duration: '1 week' }
+        ],
+        completionRequirements: 'Minimum 80% score on all assessments and completion of all course materials',
+        duration: '6 weeks',
+        validity: '3 years',
+        issuer: 'National Park Service',
+        user: userCertificate ? {
+          status: userCertificate.status,
+          applicationDate: userCertificate.application_date,
+          approvalDate: userCertificate.approvalCertified_date,
+          expiryDate: userCertificate.expiry_date,
+          progress: userCertificate.progress_percent
+        } : null
+      };
+      
+      connection.release();
+      
+      // Return certificate details
+      res.status(200).json({
+        success: true,
+        certificate: certificateDetails
+      });
+      
+    } catch (dbError) {
+      connection.release();
+      console.error('Database error fetching certificate details:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error fetching certificate details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching certificate details'
+    });
+  }
+});
+
+// Feedback API endpoint
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { name, email, guide_name, rating, guide_experience, semenggoh_experience } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !guide_name || !rating || !semenggoh_experience) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required fields are missing'
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+    
+    // Validate rating (should be between 1 and 5)
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rating should be between 1 and 5'
+      });
+    }
+    
+    // Get database connection
+    const connection = await pool.getConnection();
+    
+    try {
+      // Insert feedback into database
+      const [result] = await connection.execute(
+        `INSERT INTO feedback (name, email, guide_name, rating, guide_experience, semenggoh_experience)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [name, email, guide_name, rating, guide_experience || null, semenggoh_experience]
+      );
+      
+      connection.release();
+      
+      // Return success response
+      res.status(201).json({
+        success: true,
+        message: 'Feedback submitted successfully',
+        feedbackId: result.insertId
+      });
+    } catch (dbError) {
+      connection.release();
+      console.error('Database error saving feedback:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while submitting feedback'
+    });
+  }
+});
+
+
+// Get feedback by ID
+app.get('/api/feedback/:id', async (req, res) => {
+  try {
+    const feedbackId = req.params.id;
+    
+    // Get database connection
+    const connection = await pool.getConnection();
+    
+    try {
+      // Query feedback by ID
+      const [feedback] = await connection.execute(
+        `SELECT * FROM feedback WHERE id = ?`,
+        [feedbackId]
+      );
+      
+      connection.release();
+      
+      if (feedback.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Feedback not found'
+        });
+      }
+      
+      // Return feedback
+      res.status(200).json({
+        success: true,
+        feedback: feedback[0]
+      });
+    } catch (dbError) {
+      connection.release();
+      console.error('Database error fetching feedback:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching feedback'
+    });
+  }
+});
+
+// Start the server
+// app.listen(PORT, () => {
+//   console.log(`Server is running on http://localhost:${PORT}`);
+// });
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+// API endpoint to get all park guides
+app.get('/api/guides', async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    const query = 'SELECT userId as id, username as name FROM users WHERE userRole = "guide" ORDER BY username';
+    const [rows] = await connection.execute(query);
+    connection.release();
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error fetching guides:', error);
+    res.status(500).json({ message: 'Error fetching guides', error: error.message });
+  }
+});
+
+// API - Summarize Feedback
+app.post('/api/feedback/summarize', async (req, res) => {
+  try {
+    const { feedbackData, guideFilter } = req.body;
+    
+    if (!feedbackData || !Array.isArray(feedbackData) || feedbackData.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty feedback data' });
+    }
+    
+    // Initial data analysis
+    const totalFeedback = feedbackData.length;
+    const averageRating = feedbackData.reduce((sum, item) => sum + item.rating, 0) / totalFeedback;
+    
+    // Count ratings
+    const ratingsCount = {
+      5: feedbackData.filter(item => item.rating === 5).length,
+      4: feedbackData.filter(item => item.rating === 4).length,
+      3: feedbackData.filter(item => item.rating === 3).length,
+      2: feedbackData.filter(item => item.rating === 2).length,
+      1: feedbackData.filter(item => item.rating === 1).length,
+    };
+    
+    // Combine all feedback text for analysis
+    const allGuideExperiences = feedbackData
+      .filter(item => item.guide_experience && item.guide_experience.trim() !== '')
+      .map(item => item.guide_experience.trim());
+      
+    const allSemenggohExperiences = feedbackData
+      .filter(item => item.semenggoh_experience && item.semenggoh_experience.trim() !== '')
+      .map(item => item.semenggoh_experience.trim());
+    
+    // Extract common themes (simplified version)
+    const extractThemes = (textArray) => {
+      // In a real implementation, this would use NLP techniques
+      // For now, we'll just do some simple keyword extraction
+      
+      // Common positive keywords
+      const positiveKeywords = ['helpful', 'friendly', 'knowledgeable', 'professional', 'excellent', 
+                               'amazing', 'great', 'good', 'wonderful', 'fantastic', 'enjoyed'];
+      
+      // Common negative keywords
+      const negativeKeywords = ['poor', 'bad', 'unprofessional', 'unhelpful', 'rude', 
+                               'disappointing', 'disappointed', 'issue', 'problem', 'terrible'];
+      
+      // Count occurrences
+      const keywordCounts = {};
+      
+      textArray.forEach(text => {
+        const lowerText = text.toLowerCase();
+        
+        [...positiveKeywords, ...negativeKeywords].forEach(keyword => {
+          if (lowerText.includes(keyword.toLowerCase())) {
+            keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1;
+          }
+        });
+      });
+      
+      // Sort by frequency
+      return Object.entries(keywordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([keyword, count]) => ({
+          keyword,
+          count,
+          percentage: Math.round((count / textArray.length) * 100)
+        }));
+    };
+    
+    const guideThemes = extractThemes(allGuideExperiences);
+    const parkThemes = extractThemes(allSemenggohExperiences);
+    
+    // Generate insights based on collected data
+    const generateSummary = () => {
+      let summary = '';
+      
+      // Introduction
+      if (guideFilter === 'all guides') {
+        summary += `Summary of ${totalFeedback} feedback entries for all guides:\n\n`;
+      } else {
+        summary += `Summary of ${totalFeedback} feedback entries for guide "${guideFilter}":\n\n`;
+      }
+      
+      // Overall rating summary
+      summary += `Overall rating: ${averageRating.toFixed(1)} out of 5 stars.\n`;
+      summary += `Rating distribution: `;
+      for (let i = 5; i >= 1; i--) {
+        const percentage = Math.round((ratingsCount[i] / totalFeedback) * 100);
+        summary += `${i} stars (${percentage}%), `;
+      }
+      summary = summary.slice(0, -2) + '.\n\n';
+      
+      // Key themes from guide experiences
+      if (guideThemes.length > 0) {
+        summary += 'Key themes from guide experiences:\n';
+        guideThemes.forEach(({ keyword, percentage }) => {
+          summary += `- "${keyword}" mentioned in ${percentage}% of feedback.\n`;
+        });
+        summary += '\n';
+      }
+      
+      // Key themes from park experiences
+      if (parkThemes.length > 0) {
+        summary += 'Key themes from Semenggoh experiences:\n';
+        parkThemes.forEach(({ keyword, percentage }) => {
+          summary += `- "${keyword}" mentioned in ${percentage}% of feedback.\n`;
+        });
+        summary += '\n';
+      }
+      
+      // Generate recommendations based on ratings
+      summary += 'Recommendations:\n';
+      
+      if (averageRating >= 4.5) {
+        summary += '- Continue maintaining the excellent service quality.\n';
+      } else if (averageRating >= 4.0) {
+        summary += '- Consider addressing minor concerns to achieve excellence.\n';
+      } else if (averageRating >= 3.0) {
+        summary += '- Focus on improving specific aspects of the guide service.\n';
+      } else {
+        summary += '- Urgent attention needed to address service quality issues.\n';
+      }
+      
+      // Add recommendations based on themes
+      const negativeThemesGuide = guideThemes.filter(({ keyword }) => 
+        ['poor', 'bad', 'unprofessional', 'unhelpful', 'rude', 'disappointing', 'disappointed', 'issue', 'problem', 'terrible'].includes(keyword.toLowerCase())
+      );
+      
+      if (negativeThemesGuide.length > 0) {
+        summary += '- Consider addressing feedback related to: ' + 
+                   negativeThemesGuide.map(t => t.keyword).join(', ') + '.\n';
+      }
+      
+      // Conclusion
+      summary += '\nThis summary is based on automated analysis of feedback data and should be reviewed by management for final decisions.';
+      
+      return summary;
+    };
+    
+    // Generate the final summary
+    const summary = generateSummary();
+    
+    // Send the response
+    res.json({
+      success: true,
+      summary,
+      stats: {
+        totalFeedback,
+        averageRating,
+        ratingsCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error generating feedback summary:', error);
+    res.status(500).json({ error: 'Failed to generate summary', message: error.message });
+  }
+});
+
+// Get all feedback
+app.get('/api/feedback', async (req, res) => {
+  try {
+    // Get database connection
+    const connection = await pool.getConnection();
+    
+    try {
+      // Query all feedback
+      const [feedback] = await connection.execute(
+        `SELECT * FROM feedback ORDER BY created_at DESC`
+      );
+      
+      connection.release();
+      
+      // Return all feedback
+      res.status(200).json(feedback);
+    } catch (dbError) {
+      connection.release();
+      console.error('Database error fetching all feedback:', dbError);
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error fetching all feedback:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching feedback'
+    });
+  }
+});
+
+// User Registration API
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    console.log('Registration attempt:', { username, email, passwordLength: password?.length });
+    
+    // Validate request data
+    if (!username || !email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username, email and password are required' 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+    
+    // Validate username length
+    if (username.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username must be at least 3 characters long'
+      });
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+    
+    // Get database connection
+    const connection = await pool.getConnection();
+    try {
+      // Check if username exists
+      const [userRows] = await connection.execute(
+        'SELECT userId FROM users WHERE username = ?',
+        [username]
+      );
+      if (userRows.length > 0) {
+        connection.release();
+        return res.status(409).json({
+          success: false,
+          message: 'Username already exists'
+        });
+      }
+      // Check if email exists
+      const [emailRows] = await connection.execute(
+        'SELECT userId FROM users WHERE email = ?',
+        [email]
+      );
+      if (emailRows.length > 0) {
+        connection.release();
+        return res.status(409).json({
+          success: false,
+          message: 'Email already exists'
+        });
+      }
+
+      // Hash the password before storing it
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Insert new user with hashed password
+      const [result] = await connection.execute(
+        'INSERT INTO users (username, email, password, userRole) VALUES (?, ?, ?, ?)',
+        [username, email, hashedPassword, 'user']
+      );
+      connection.release();
+      // Return success response
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful',
+        userId: result.insertId
+      });
+    } catch (dbError) {
+      connection.release();
+      console.error('Database error during registration:', dbError);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred during registration, please try again later'
+      });
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during registration, please try again later'
+    });
+  }
 });

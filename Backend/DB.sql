@@ -26,7 +26,11 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT IGNORE INTO users (username, email, password, userRole) VALUES
 ('john_user', 'john@example.com', 'password123', 'user'),
 ('sarah_guide', 'sarah@parkguide.com', 'password123', 'guide'),
-('admin_user', 'admin@parkguide.com', 'password123', 'admin');
+('admin_user', 'admin@parkguide.com', 'password123', 'admin'),
+('david_guide', 'david@parkguide.com', 'password123', 'guide'),
+('emma_guide', 'emma@parkguide.com', 'password123', 'guide'),
+('michael_guide', 'michael@parkguide.com', 'password123', 'guide'),
+('olivia_guide', 'olivia@parkguide.com', 'password123', 'guide');
 
 -- Create certificates table
 CREATE TABLE IF NOT EXISTS certificates (
@@ -244,11 +248,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add indexes for better query performance
-CREATE INDEX idx_notification_from_user ON notifications(from_user_id);
-CREATE INDEX idx_notification_to_user ON notifications(to_user_id);
-CREATE INDEX idx_notification_type ON notifications(type);
-CREATE INDEX idx_notification_read ON notifications(is_read);
-CREATE INDEX idx_notification_date ON notifications(date);
+CREATE INDEX IF NOT EXISTS idx_notification_from_user ON notifications(from_user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_to_user ON notifications(to_user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notification_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_notification_date ON notifications(date);
 
 -- Insert sample notification data
 INSERT INTO notifications (from_user_id, to_user_id, type, title, message, date, is_read) VALUES
@@ -270,4 +274,36 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
         rain BOOLEAN,
         soil_moisture INT,
         raw_data TEXT
-    )
+);
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS phoneNumber VARCHAR(20),
+ADD COLUMN IF NOT EXISTS fullName VARCHAR(100),
+ADD COLUMN IF NOT EXISTS bio TEXT,
+ADD COLUMN IF NOT EXISTS experience TEXT;
+
+ALTER TABLE certificate_applications
+MODIFY COLUMN status ENUM(
+    'Pending for Registration',
+    'In Progress',
+    'Pending for Certified',
+    'Rejected',
+    'Certified',
+    'Expired'
+) NOT NULL DEFAULT 'Pending for Registration';
+
+-- Create feedback table
+CREATE TABLE IF NOT EXISTS feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    guide_name VARCHAR(100) NOT NULL,
+    rating INT NOT NULL,
+    guide_experience TEXT,
+    semenggoh_experience TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_rating (rating),
+    INDEX idx_guide_name (guide_name),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
