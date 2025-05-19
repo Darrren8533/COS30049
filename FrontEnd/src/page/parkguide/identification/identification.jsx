@@ -180,7 +180,7 @@ const Identification = () => {
                 <div className="result-header">
                   <h2>Identification Result</h2>
                   <div className="confidence-badge">
-                    Confidence: {(result.confidence * 100).toFixed(2)}%
+                    Confidence: {(result.confidence > 1 ? result.confidence.toFixed(2) : (result.confidence * 100).toFixed(2))}%
                   </div>
                 </div>
                 

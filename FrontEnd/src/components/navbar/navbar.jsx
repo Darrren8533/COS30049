@@ -42,7 +42,7 @@ const Navbar = () => {
         ) : (
           // Show signup and signin buttons if user is not logged in
           <>
-            <a href="/signup" className="btn btn-light">Sign Up</a>
+            {/* <a href="/signup" className="btn btn-light">Sign Up</a> */}
             <a href="/signin" className="btn btn-outline">Sign In</a>
           </>
         )}

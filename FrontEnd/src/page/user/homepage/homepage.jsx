@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import './homepage.css';
 import Navbar from '../../../components/navbar/navbar';
+import Footer from '../../../components/footer/footer';
 
 const Homepage = () => {
   
@@ -146,39 +147,7 @@ const Homepage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="footer-section">
-          <h3>ParkGuide</h3>
-          <p>Your trusted companion for exploring national parks with expert guides and comprehensive resources.</p>
-          <a href="/signin">Sign In</a>
-        </div>
-        <div className="footer-section">
-          <h3>Quick Links</h3>
-          <ul>
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/features">Features</a></li>
-            <li><a href="/testimonials">Testimonials</a></li>
-            <li><a href="/faq">FAQ</a></li>
-          </ul>
-        </div>
-        <div className="footer-section">
-          <h3>Resources</h3>
-          <ul>
-            <li><a href="/blog">Blog</a></li>
-            <li><a href="/certification">Certification</a></li>
-            <li><a href="/directory">Park Directory</a></li>
-          </ul>
-        </div>
-        <div className="footer-section">
-          <h3>Contact</h3>
-          <p><i className="fas fa-map-marker-alt"></i> 123 Park Avenue, Nature City, NC 28789</p>
-          <p><i className="fas fa-envelope"></i> info@parkguide.com</p>
-          <p><i className="fas fa-phone"></i> (555) 123-4567</p>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2023 ParkGuide. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
 
       <style jsx>{`
         .animate-on-scroll {

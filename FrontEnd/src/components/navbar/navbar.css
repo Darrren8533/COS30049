@@ -12,6 +12,10 @@
   width: 100%; /* Set the width to 100% */
 }
 
+.user-welcome{
+  padding-top: 1.8%;
+}
+
 .logo {
   font-size: 1.4rem;
   font-weight: 700;

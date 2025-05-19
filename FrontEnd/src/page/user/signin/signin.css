@@ -170,21 +170,50 @@ html, body {
   position: relative;
 }
 
-.input-with-icon i {
+.input-with-icon .input-icon {
   position: absolute;
-  left: 15px;
   top: 50%;
   transform: translateY(-50%);
   color: #95a5a6;
 }
 
+.input-with-icon .left-icon {
+  left: 15px;
+}
+
+.input-with-icon .right-icon {
+  right: 15px;
+  cursor: pointer;
+}
+
 .input-with-icon input {
   width: 100%;
-  padding: 0.9375rem;
-  border: 0.0625rem solid #dcdfe6;
+  padding: 0.9375rem 2.5rem;
+  border: 1px solid #dcdfe6;
   border-radius: 0.5rem;
   font-size: 1rem;
   transition: all 0.3s ease;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  background: none;
+  border: none;
+  padding: 0 15px;
+  color: #95a5a6;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: #2ecc71;
+}
+
+.password-toggle:focus {
+  outline: none;
 }
 
 .input-with-icon input:focus {
@@ -210,6 +239,13 @@ html, body {
   margin-bottom: 30px;
 }
 
+.remember-me-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 .remember-me {
   display: flex;
   align-items: center;
@@ -220,10 +256,17 @@ html, body {
   accent-color: #2ecc71;
 }
 
+.remember-me label {
+  font-weight: normal;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  margin: 0;
+}
+
 .forgot-password {
+  font-size: 0.9rem;
   color: #2ecc71;
   text-decoration: none;
-  font-size: 0.9rem;
   transition: color 0.3s ease;
 }
 
@@ -327,7 +370,9 @@ html, body {
 
 .signup-prompt {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  color: #7f8c8d;
 }
 
 .signup-prompt a {
@@ -342,7 +387,7 @@ html, body {
   text-decoration: underline;
 }
 
-/* 响应式设计 */
+/* Responsive Design */
 @media (min-width: 992px) {
   .signin-image-container {
     display: block;
@@ -429,7 +474,7 @@ html, body {
   transition: all 0.3s ease;
 }
 
-/* 添加表单头部样式 */
+/* Adding form header style */
 .form-header {
   display: flex;
   justify-content: space-between;
@@ -437,12 +482,12 @@ html, body {
   margin-bottom: 10px;
 }
 
-/* 基础字体大小设置 */
+/* Basic font size setting */
 :root {
   font-size: 16px;
 }
 
-/* 添加消息样式 */
+/* Adding message style */
 .message {
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
@@ -463,9 +508,63 @@ html, body {
   border: 1px solid rgba(231, 76, 60, 0.3);
 }
 
-/* 修改按钮禁用状态样式 */
+/* Modifying button disabled state style */
 .signin-button:disabled {
   background-color: #95a5a6;
   cursor: not-allowed;
+}
+
+/* OTP form styles */
+.otp-options {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.resend-otp,
+.back-to-login {
+  background: none;
+  border: none;
+  color: #2ecc71;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 5px 0;
+}
+
+.resend-otp:hover,
+.back-to-login:hover {
+  color: #27ae60;
+  text-decoration: underline;
+}
+
+.resend-otp:disabled,
+.back-to-login:disabled {
+  color: #95a5a6;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+input#otp {
+  letter-spacing: 2px;
+  font-size: 1.2rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* OTP verification animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signin-form {
+  animation: fadeInUp 0.4s ease-out;
 }
 

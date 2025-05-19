@@ -24,6 +24,7 @@ import Feedback from './page/user/feedback/feedback'
 import Profile from './page/parkguide/profile/profile'
 import Admin_Feedback from './page/admin/feedback/feedback'
 import Map from './page/user/map/map'
+import SignUp from './page/user/signup/signup'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
       <Routes>
         {/* Default route redirect to homepage */}
         <Route path="/" element={<Homepage />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/feedback" element={<Feedback />} />
         <Route path="/map" element={<Map />} />

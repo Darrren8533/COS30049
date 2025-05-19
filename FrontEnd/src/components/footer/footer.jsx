@@ -30,9 +30,9 @@ const Footer = () => {
       </div>
       <div className="footer-section">
         <h3>Contact</h3>
-        <p><i className="fas fa-map-marker-alt"></i> Sarawak Forestry Corporation, Malaysia</p>
+        <p><i className="fas fa-map-marker-alt"></i>KM 20, Borneo Highland Road, 93250 Kuching, Sarawak</p>
         <p><i className="fas fa-envelope"></i> info@parkguide.com</p>
-        <p><i className="fas fa-phone"></i> (60) 123-4567</p>
+        <p><i className="fas fa-phone"></i> 082-618 325 / 082-618 324 </p>
       </div>
       <div className="footer-bottom">
         <p>&copy; {currentYear} ParkGuide. All rights reserved.</p>
