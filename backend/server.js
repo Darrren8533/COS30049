@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const ort = require('onnxruntime-node');
 const sharp = require('sharp');
-const { android } = require('../react-native/expoApp/app.config');
+
 // Add nodemailer for OTP verification
 const nodemailer = require('nodemailer');
 
@@ -96,8 +96,8 @@ const otpStore = new Map(); // Map to store OTP codes: { email: { code: string, 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'laudarren911@gmail.com', // Replace with your email
-    pass: 'gmth rtah tfer xclu'     // Replace with your app password or email password
+    user: 'fyone0127@gmail.com', // Replace with your email
+    pass: 'nemb pgkp crcv spbp'     // Replace with your app password or email password
   }
 });
 
@@ -109,7 +109,7 @@ function generateOTP() {
 // Function to send OTP via email
 async function sendOTPEmail(email, otp) {
   const mailOptions = {
-    from: 'laudarren911@gmail.com', // Replace with your email
+    from: 'fyone0127@gmail.com', // Replace with your email
     to: email,
     subject: 'ParkGuide Login Verification Code',
     html: `
