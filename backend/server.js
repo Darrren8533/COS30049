@@ -546,6 +546,9 @@ app.delete('/api/deleteCertificates/:id', async (req, res) => {
     const connection = await pool.getConnection();
     
     try {
+      // Begin transaction
+      await connection.beginTransaction();
+      
       // Check if certificate exists
       const [certificates] = await connection.execute(
         'SELECT certificateCode FROM certificates WHERE certificateCode = ?',
@@ -553,6 +556,7 @@ app.delete('/api/deleteCertificates/:id', async (req, res) => {
       );
       
       if (certificates.length === 0) {
+        await connection.rollback();
         connection.release();
         return res.status(404).json({
           success: false,
@@ -560,11 +564,79 @@ app.delete('/api/deleteCertificates/:id', async (req, res) => {
         });
       }
       
-      // Delete certificate
+      // First, get all topic IDs for this certificate
+      const [topics] = await connection.execute(
+        'SELECT id FROM certificate_topics WHERE certificate_id = ?',
+        [certificateId]
+      );
+      
+      // For each topic, delete related records
+      for (const topic of topics) {
+        const topicId = topic.id;
+        
+        // Delete quiz attempts for this topic
+        await connection.execute(
+          'DELETE FROM quiz_attempts WHERE topic_id = ?',
+          [topicId]
+        );
+        
+        // Get all quiz IDs for this topic
+        const [quizzes] = await connection.execute(
+          'SELECT id FROM quizzes WHERE topic_id = ?',
+          [topicId]
+        );
+        
+        // For each quiz, delete related records
+        for (const quiz of quizzes) {
+          const quizId = quiz.id;
+          
+          // Delete all question options and then questions
+          await connection.execute(
+            `DELETE FROM question_options 
+             WHERE question_id IN (SELECT id FROM quiz_questions WHERE quiz_id = ?)`,
+            [quizId]
+          );
+          
+          // Delete quiz questions
+          await connection.execute(
+            'DELETE FROM quiz_questions WHERE quiz_id = ?',
+            [quizId]
+          );
+        }
+        
+        // Delete quizzes
+        await connection.execute(
+          'DELETE FROM quizzes WHERE topic_id = ?',
+          [topicId]
+        );
+        
+        // Delete topic materials
+        await connection.execute(
+          'DELETE FROM topic_materials WHERE topic_id = ?',
+          [topicId]
+        );
+      }
+      
+      // Delete certificate topics
+      await connection.execute(
+        'DELETE FROM certificate_topics WHERE certificate_id = ?',
+        [certificateId]
+      );
+      
+      // Delete certificate applications
+      await connection.execute(
+        'DELETE FROM certificate_applications WHERE certificate_id = ?',
+        [certificateId]
+      );
+      
+      // Finally delete the certificate
       const [result] = await connection.execute(
         'DELETE FROM certificates WHERE certificateCode = ?',
         [certificateId]
       );
+      
+      // Commit the transaction
+      await connection.commit();
       
       connection.release();
       
@@ -575,6 +647,8 @@ app.delete('/api/deleteCertificates/:id', async (req, res) => {
         affectedRows: result.affectedRows
       });
     } catch (dbError) {
+      // Rollback in case of error
+      await connection.rollback();
       connection.release();
       console.error('Database error deleting certificate:', dbError);
       throw dbError;
